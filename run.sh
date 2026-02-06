@@ -10,6 +10,10 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# --- Trap Control-C ---
+# این بخش باعث می‌شود با زدن Ctrl+C اسکریپت بسته نشود و به منو برگردد
+trap 'echo -e "\n${YELLOW}Returning to menu...${NC}"; sleep 1' SIGINT
+
 # --- Root Check ---
 if [ "$EUID" -ne 0 ]; then 
   echo -e "${RED}❌ Please run as root!${NC}"
@@ -34,13 +38,12 @@ show_menu() {
     echo -e "  ${YELLOW}1)${NC} ${BOLD}🇮🇷 Setup IR Server${NC}"
     echo -e "  ${YELLOW}2)${NC} ${BOLD}🌍 Setup Foreign Server${NC}"
     echo -e "  ${YELLOW}3)${NC} ${BOLD}📊 Show Status & Ping${NC}"
-    echo -e "  ${YELLOW}4)${NC} ${BOLD}📜 View Logs${NC}"
+    echo -e "  ${YELLOW}4)${NC} ${BOLD}📜 View Live Logs (Ctrl+C to Back)${NC}"
     echo -e "  ${YELLOW}5)${NC} ${BOLD}♻️  Restart Tunnel${NC}"
     echo -e "  ${YELLOW}6)${NC} ${CYAN}🧹 Clear SSH Cache${NC}"
     echo -e "  ${YELLOW}7)${NC} ${RED}🗑️  Uninstall Tunnel${NC}"
     echo -e "  ${YELLOW}0)${NC} ${BOLD}🚪 Exit${NC}"
     echo -e "${CYAN}────────────────────────────────────────────────────${NC}"
-    read -p " 💻 Selection: " choice
 }
 
 # --- 1. IR Server ---
@@ -60,19 +63,17 @@ setup_ir() {
 setup_foreign() {
     clear
     echo -e "${BLUE}🔹 Foreign Server Tunnel Setup${NC}"
-    read -p " 🌐 Enter IR Server IP (or type '0' to go back): " ir_ip
-    if [[ "$ir_ip" == "0" ]]; then return; fi
+    read -p " 🌐 Enter IR Server IP (or 0 to back): " ir_ip
+    [[ "$ir_ip" == "0" ]] && return
     
     read -p " 🔌 Enter Ports (e.g. 2053,2083): " ports_list
     
     echo -e "${YELLOW}⏳ Installing autossh...${NC}"
     apt update && apt install -y autossh
     
-    if [ ! -f ~/.ssh/id_ed25519 ]; then
-        ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
-    fi
+    [[ ! -f ~/.ssh/id_ed25519 ]] && ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
     
-    echo -e "${PURPLE}👉 Copying Key to IR. Enter IR password:${NC}"
+    echo -e "${PURPLE}👉 Copying Key to IR. Enter password:${NC}"
     ssh-copy-id -o StrictHostKeyChecking=no root@$ir_ip
     
     R_COMMANDS=""
@@ -121,74 +122,33 @@ show_status() {
             ping -c 2 $ir_target | tail -1 | awk '{print $4}' | cut -d '/' -f 2 | sed 's/$/ ms/' 2>/dev/null || echo "Timeout"
         fi
     fi
-    echo -e "\n${BLUE}Systemd Status:${NC}"
+    echo -e "\n${BLUE}Details:${NC}"
     systemctl status reverse-tunnel --no-pager
     echo -e "\n${YELLOW}----------------------------------------------------${NC}"
-    echo -e "${PURPLE}Press 0 to return to menu${NC}"
-    while true; do
-        read -n 1 -s key
-        if [[ $key == "0" ]]; then break; fi
-    done
-}
-
-# --- 4. Logs (The Bug-Free Version) ---
-view_logs() {
-    clear
-    echo -e "${BLUE}📜 Tunnel Logs${NC}"
-    echo -e "${YELLOW}1)${NC} Last 20 lines (Quick view)"
-    echo -e "${YELLOW}2)${NC} Last 100 lines"
-    echo -e "${YELLOW}0)${NC} Back to menu"
-    read -p " Selection: " log_choice
-    
-    case $log_choice in
-        1) journalctl -u reverse-tunnel -n 20 --no-pager ;;
-        2) journalctl -u reverse-tunnel -n 100 --no-pager ;;
-        0) return ;;
-        *) echo "Invalid"; sleep 1; return ;;
-    esac
-    
-    echo -e "\n${CYAN}----------------------------------------------------${NC}"
     read -n 1 -s -r -p "Press any key to return to menu..."
 }
 
-# --- 6. Clear Cache ---
-clear_ssh_cache() {
+# --- 4. Logs (Fixed with Trap) ---
+view_logs() {
     clear
-    echo -e "${YELLOW}🧹 Clearing Known Hosts Cache...${NC}"
-    read -p "Enter IP to clear (or '0' to cancel): " target_ip
-    if [[ "$target_ip" == "0" ]]; then return; fi
-    
-    ssh-keygen -R "$target_ip" &>/dev/null
-    echo -e "${GREEN}Cache for $target_ip cleared.${NC}"
-    sleep 2
-}
-
-# --- 7. Uninstall ---
-uninstall_tunnel() {
-    clear
-    echo -e "${RED}⚠️  Uninstall Tunnel? (y/n): ${NC}"
-    read -p "Selection: " confirm
-    if [[ "$confirm" == "y" ]]; then
-        systemctl stop reverse-tunnel && systemctl disable reverse-tunnel
-        rm -f /etc/systemd/system/reverse-tunnel.service
-        systemctl daemon-reload
-        echo -e "${GREEN}✅ Uninstalled.${NC}"
-    fi
-    sleep 1
+    echo -e "${BLUE}📜 Live Logs (Press Ctrl+C to stop and return to menu)${NC}"
+    echo -e "${YELLOW}----------------------------------------------------${NC}"
+    journalctl -u reverse-tunnel -f
 }
 
 # --- Main Loop ---
 while true; do
     show_menu
+    read -p " 💻 Selection: " choice
     case $choice in
         1) setup_ir ;;
         2) setup_foreign ;;
         3) show_status ;;
         4) view_logs ;;
         5) systemctl restart reverse-tunnel; echo -e "${GREEN}♻️  Restarted.${NC}"; sleep 1 ;;
-        6) clear_ssh_cache ;;
-        7) uninstall_tunnel ;;
-        0) clear; echo "Goodbye!"; exit ;;
+        6) clear; read -p "IP to clear: " tip; ssh-keygen -R "$tip" &>/dev/null; sleep 1 ;;
+        7) clear; read -p "Uninstall? (y/n): " conf; [[ "$conf" == "y" ]] && (systemctl stop reverse-tunnel; rm -f /etc/systemd/system/reverse-tunnel.service; systemctl daemon-reload; echo "Done"); sleep 1 ;;
+        0) clear; exit ;;
         *) echo -e "${RED}Invalid!${NC}"; sleep 1 ;;
     esac
 done
