@@ -29,7 +29,7 @@ setup_ir() {
     echo "IR Server is ready!"
 }
 
-# 2. UK Server Setup [cite: 3, 6]
+# 2. Foreign Server Setup [cite: 3, 6]
 setup_uk() {
     read -p "Enter IR Server IP: " ir_ip
     read -p "Enter Ports (comma separated, e.g. 2053,2083): " ports_list
@@ -77,7 +77,7 @@ EOF
 # 4. Status [cite: 13, 14]
 show_status() {
     systemctl status reverse-tunnel --no-pager
-    echo "Active Tunnel Ports (on UK side):"
+    echo "Active Tunnel Ports (on foreign side):"
     pgrep -af "ssh.*-R"
 }
 
@@ -86,7 +86,7 @@ while true; do
     show_menu
     case $choice in
         1) setup_ir ;;
-        2) setup_uk ;;
+        2) setup_Forein ;;
         4) show_status ;;
         0) exit ;;
         *) echo "Invalid option" ;;
