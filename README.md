@@ -1,6 +1,6 @@
 
 
-# 🚀 Reverse SSH Tunnel Manager (UK ⇄ IR)
+# 🚀 Reverse SSH Tunnel Manager
 
 یک اسکریپت جامع و خودکار برای ایجاد تونل معکوس پایدار بین سرور خارج (Foreign) و سرور ایران (Internal). این روش به دلیل ماهیت **Reverse Connection**، حتی در زمان اختلالات شدید اینترنت که دسترسی از خارج به ایران محدود می‌شود، به خوبی عمل می‌کند.
 
@@ -50,7 +50,7 @@
 برای شروع، تنها کافیست دستور زیر را در سرور خود اجرا کنید:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/run.sh)
+bash <(curl -Ls https://raw.githubusercontent.com//Reverse-SSH-Tunnel-Manager/main/run.sh)
 
 ```
 
