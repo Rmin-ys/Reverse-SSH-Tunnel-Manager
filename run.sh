@@ -8,11 +8,7 @@ BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
-
-# --- Trap Control-C ---
-# این بخش باعث می‌شود با زدن Ctrl+C اسکریپت بسته نشود و به منو برگردد
-trap 'echo -e "\n${YELLOW}Returning to menu...${NC}"; sleep 1' SIGINT
+NC='\033[0m'
 
 # --- Root Check ---
 if [ "$EUID" -ne 0 ]; then 
@@ -38,12 +34,36 @@ show_menu() {
     echo -e "  ${YELLOW}1)${NC} ${BOLD}🇮🇷 Setup IR Server${NC}"
     echo -e "  ${YELLOW}2)${NC} ${BOLD}🌍 Setup Foreign Server${NC}"
     echo -e "  ${YELLOW}3)${NC} ${BOLD}📊 Show Status & Ping${NC}"
-    echo -e "  ${YELLOW}4)${NC} ${BOLD}📜 View Live Logs (Ctrl+C to Back)${NC}"
+    echo -e "  ${YELLOW}4)${NC} ${BOLD}📜 View Logs (Safe Mode)${NC}"
     echo -e "  ${YELLOW}5)${NC} ${BOLD}♻️  Restart Tunnel${NC}"
     echo -e "  ${YELLOW}6)${NC} ${CYAN}🧹 Clear SSH Cache${NC}"
     echo -e "  ${YELLOW}7)${NC} ${RED}🗑️  Uninstall Tunnel${NC}"
     echo -e "  ${YELLOW}0)${NC} ${BOLD}🚪 Exit${NC}"
     echo -e "${CYAN}────────────────────────────────────────────────────${NC}"
+}
+
+# --- 4. Safe Logs (No Ctrl+C Needed) ---
+view_logs_safe() {
+    local lines=10
+    while true; do
+        clear
+        echo -e "${BLUE}📜 Showing last $lines lines of logs:${NC}"
+        echo -e "${YELLOW}----------------------------------------------------${NC}"
+        journalctl -u reverse-tunnel -n $lines --no-pager
+        echo -e "${YELLOW}----------------------------------------------------${NC}"
+        echo -e "${GREEN}1)${NC} Show 10 more lines"
+        echo -e "${GREEN}0)${NC} Back to Main Menu"
+        read -p " Selection: " log_sub
+        
+        if [[ "$log_sub" == "1" ]]; then
+            lines=$((lines + 10))
+        elif [[ "$log_sub" == "0" ]]; then
+            break
+        else
+            echo -e "${RED}Invalid choice!${NC}"
+            sleep 1
+        fi
+    done
 }
 
 # --- 1. IR Server ---
@@ -128,14 +148,6 @@ show_status() {
     read -n 1 -s -r -p "Press any key to return to menu..."
 }
 
-# --- 4. Logs (Fixed with Trap) ---
-view_logs() {
-    clear
-    echo -e "${BLUE}📜 Live Logs (Press Ctrl+C to stop and return to menu)${NC}"
-    echo -e "${YELLOW}----------------------------------------------------${NC}"
-    journalctl -u reverse-tunnel -f
-}
-
 # --- Main Loop ---
 while true; do
     show_menu
@@ -144,7 +156,7 @@ while true; do
         1) setup_ir ;;
         2) setup_foreign ;;
         3) show_status ;;
-        4) view_logs ;;
+        4) view_logs_safe ;;
         5) systemctl restart reverse-tunnel; echo -e "${GREEN}♻️  Restarted.${NC}"; sleep 1 ;;
         6) clear; read -p "IP to clear: " tip; ssh-keygen -R "$tip" &>/dev/null; sleep 1 ;;
         7) clear; read -p "Uninstall? (y/n): " conf; [[ "$conf" == "y" ]] && (systemctl stop reverse-tunnel; rm -f /etc/systemd/system/reverse-tunnel.service; systemctl daemon-reload; echo "Done"); sleep 1 ;;
