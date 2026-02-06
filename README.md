@@ -50,7 +50,7 @@
 برای شروع، تنها کافیست دستور زیر را در سرور خود اجرا کنید:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com//Reverse-SSH-Tunnel-Manager/main/run.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/‌Rmin-ys/Reverse-SSH-Tunnel-Manager/main/run.sh)
 
 ```
 
