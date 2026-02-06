@@ -34,4 +34,4 @@
 کافیست دستور زیر را در ترمینال سرور خود کپی و اجرا کنید:
 
 ```bash
-bash <(curl -Ls [https://raw.githubusercontent.com/Rmin-ys/Reverse-SSH-Tunnel-Manager/main/run.sh](https://raw.githubusercontent.com/Rmin-ys/Reverse-SSH-Tunnel-Manager/main/run.sh))
+bash <(curl -Ls https://raw.githubusercontent.com/Rmin-ys/Reverse-SSH-Tunnel-Manager/main/run.sh)
